@@ -1,14 +1,17 @@
 const canvas = document.querySelector("canvas");
 const c = canvas.getContext("2d");
 
-const GRID_ROWS = 4;
-const GRID_COLUMNS = 10;
+const GRID_ROWS = 5;
+let GRID_COLUMNS = 12;
 
 const BALL_RADIUS = 30;
 const COLORS = ["red", "aqua", "blue", "yellow", "pink", "purple"];
 
 const CANVAS_WIDTH = (canvas.width = window.innerWidth);
 const CANVAS_HEIGHT = (canvas.height = window.innerHeight);
+
+let TotalWidth = GRID_COLUMNS * BALL_RADIUS * 2;
+let GapWidth = (CANVAS_WIDTH - TotalWidth) / 2;
 
 // _______________---___classes
 class Player {
@@ -23,6 +26,8 @@ class Player {
     c.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2, false);
     c.fillStyle = this.color;
     c.fill();
+    c.shadowColor = this.color;
+    c.shadowBlur = 6;
     c.closePath();
   }
 }
@@ -53,8 +58,8 @@ class Projectile {
   update() {
     this.draw();
 
-    this.position.x += this.velocity.x * 10;
-    this.position.y += this.velocity.y * 10;
+    this.position.x += this.velocity.x * 15;
+    this.position.y += this.velocity.y * 15;
     if (
       this.position.x <= BALL_RADIUS ||
       this.position.x >= canvas.width - BALL_RADIUS
@@ -62,9 +67,8 @@ class Projectile {
       this.velocity.x = -this.velocity.x;
     }
     if (
-      (this.position.x < CANVAS_WIDTH - (GRID_COLUMNS * BALL_RADIUS * 2) / 2 &&
-        this.position.y <= BALL_RADIUS + 3) ||
-      (this.position.x > CANVAS_WIDTH - (GRID_COLUMNS * 2 * BALL_RADIUS) / 2 &&
+      (this.position.x < GapWidth && this.position.y <= BALL_RADIUS + 7) ||
+      (this.position.x > GapWidth + TotalWidth &&
         this.position.y < BALL_RADIUS + 3)
     ) {
       projectiles.splice(projectiles.length - 1, 1);
@@ -90,11 +94,13 @@ class Invader {
     c.beginPath();
     c.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2, false);
     c.fillStyle = this.color;
+    c.shadowColor = this.color;
+    c.shadowBlur = 6;
     c.fill();
     // c.closePath();
     c.beginPath();
     c.fillStyle = "black";
-    c.fillText(`${this.x},${this.y}`, this.position.x - 10, this.position.y);
+    c.fillText(`x${this.x},${this.y}`, this.position.x - 10, this.position.y);
     c.fill();
   }
   // isCherries(obj) {
@@ -134,20 +140,21 @@ class Invader {
 class Grid {
   constructor() {
     this.invaders = [];
-    let columns = GRID_COLUMNS;
     let rows = GRID_ROWS;
     let width = (CANVAS_WIDTH - GRID_COLUMNS * BALL_RADIUS * 2) / 2;
+    let minuss = 30;
     for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < columns; x++) {
+      for (let x = 0; x < GRID_COLUMNS; x++) {
         let minus = 0;
         if (y % 2 == 0) {
           // minus = 0;
           minus = BALL_RADIUS;
         }
+
         const new_invader = new Invader({
           color: COLORS[Math.floor(Math.random() * COLORS.length)],
           position: {
-            x: BALL_RADIUS * 2 * x + width - minus,
+            x: BALL_RADIUS * 2 * x + width + minuss,
             y: BALL_RADIUS * 1.77 * y + BALL_RADIUS,
           },
           radius: BALL_RADIUS,
@@ -158,12 +165,9 @@ class Grid {
         this.invaders.push(new_invader);
         for (let i = 0; i < this.invaders.length; i++) {
           if (
-            (new_invader.x == this.invaders[i].x - 1 &&
-              new_invader.y == this.invaders[i].y) ||
-            (new_invader.x == this.invaders[i].x + 1 &&
-              new_invader.y == this.invaders[i].y) ||
-            (new_invader.y == this.invaders[i].y - 1 &&
-              new_invader.x == this.invaders[i].x) ||
+            (new_invader.x == this.invaders[i].x - 1 &&  new_invader.y == this.invaders[i].y) ||
+            (new_invader.x == this.invaders[i].x + 1 && new_invader.y == this.invaders[i].y) ||
+            (new_invader.y == this.invaders[i].y - 1 && new_invader.x == this.invaders[i].x) ||
             (new_invader.y == this.invaders[i].y + 1 &&
               new_invader.x == this.invaders[i].x) ||
             (new_invader.x == this.invaders[i].x - 1 &&
@@ -178,6 +182,8 @@ class Grid {
           }
         }
       }
+      GRID_COLUMNS -= 1;
+      minuss += 30;
     }
   }
 }
@@ -199,7 +205,7 @@ const grid = new Grid();
 
 function animate() {
   requestAnimationFrame(animate);
-  c.fillStyle = "rgba(0, 0,0, .4)";
+  c.fillStyle = "black";
   c.fillRect(0, 0, canvas.width, canvas.height);
   // _______________Player
   player.draw();
@@ -215,24 +221,28 @@ function animate() {
 
     // projectile collosion detection
     if (proIndex > 0) {
-      for (let i = 0; i < projectiles.length - 1; i++) {
-        const dist = Math.hypot(
-          projectiles[proIndex].position.y - projectiles[i].position.y,
-          projectiles[proIndex].position.x - projectiles[i].position.x
-        );
-
-        if (dist <= BALL_RADIUS * 2) {
-          projectile.velocity.x = 0;
-          projectile.velocity.y = 0;
-        }
-      }
+      // for (let i = 0; i < projectiles.length - 1; i++) {
+      //   const dist = Math.hypot(
+      //     projectiles[proIndex].position.y - projectiles[i].position.y,
+      //     projectiles[proIndex].position.x - projectiles[i].position.x
+      //   );
+      //   if (dist <= BALL_RADIUS * 2) {
+      //     projectile.velocity.x = 0;
+      //     projectile.velocity.y = 0;
+      //   }
+      // }
     }
   });
 
   // _______________invaders
+
   grid.invaders.map((invader, invIndex) => {
     invader.draw();
-
+    // console.log(invader.index,invader.neighbours.length);
+    // console.log(invader.neighbours.length);
+    if (invader.neighbours.length == 0) {
+      console.log('amir')
+    }
     projectiles.map((projectile, proIndex) => {
       const dist = Math.hypot(
         projectile.position.y - invader.position.y,
@@ -247,18 +257,30 @@ function animate() {
           projectiles.splice(proIndex, 1);
           invader.remove();
         } else {
+          let x1;
+          let y1;
+          if (projectile.position.y - invader.position.y < BALL_RADIUS) {
+            x1 = invader.x + 1;
+            y1 = invader.y;
+          } else if (projectile.position.y - invader.position.y > BALL_RADIUS) {
+            x1 = invader.x;
+            y1 = invader.y + 1;
+          }
+          var new_invader = new Invader({
+            color: projectile.color,
+            position: {
+              x: projectile.position.x,
+              y: projectile.position.y,
+            },
+            radius: BALL_RADIUS,
+            index: grid.invaders.length,
+            y: y1,
+            x: x1,
+          });
+          new_invader.neighbours.push(invader)
+          invader.neighbours.push(new_invader)
           grid.invaders.push(
-            new Invader({
-              color: projectile.color,
-              position: {
-                x: projectile.position.x,
-                y: projectile.position.y,
-              },
-              radius: BALL_RADIUS,
-              index: grid.invaders.length,
-              y: invader.x + 1,
-              x: invader.y + 1,
-            })
+            new_invader
           );
         }
       }
